@@ -110,7 +110,7 @@ function update() {
     // position based on time difference
     const timeToTarget = note.targetTime - elapsed;
     const hitY = canvas.height-50;
-    note.y = hitY - timeToTarget/10; // adjust divisor for speed
+    note.y += currentSong.NOTESPEED;
   });
 
   // Remove passed notes
