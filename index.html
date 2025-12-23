@@ -49,7 +49,7 @@ const songs = {
     id:'song1',
     title:'balls',
     audioSrc:'dontplay.mp3',
-    NOTESPEED: 40,
+    NOTESPEED: 80,
     notesData:[
       { type:'tap', time:1000, lane:0 },
       { type:'tap', time:2000, lane:1 },
@@ -100,7 +100,7 @@ function update() {
   // Spawn notes when their time comes
   currentSong.notesData.forEach(nd=>{
     if (!nd.spawned && elapsed >= nd.time-2000) { // spawn 2s early
-      notes.push({lane:nd.lane, y:-200, targetTime:nd.time});
+      notes.push({lane:nd.lane, y:-800, targetTime:nd.time});
       nd.spawned=true;
     }
   });
