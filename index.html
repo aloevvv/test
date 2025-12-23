@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Rhythm Game</title>
+  <title>Cool Amazing Shyte</title>
   <style>
     body { margin:0; background:#000; color:white; font-family:sans-serif; }
     canvas { display:block; margin:0 auto; background:#111; }
@@ -14,7 +14,7 @@
 
 <div id="menu">
   <h1>Select a Song</h1>
-  <button onclick="startSong('song1')">sex</button>
+  <button onclick="startSong('song1')">Sex</button>
 </div>
 
 <canvas id="gameCanvas" width="400" height="600" style="display:none"></canvas>
@@ -44,7 +44,6 @@ function drawArrow(x, y, width, height, color) {
 }
 
 // --- Song Data ---
-const NOTE_Y0=0, NOTE_Y1=0, NOTE_Y2=0, NOTE_Y3=0, NOTE_Y4=0; 
 const songs = {
   song1: {
     id:'song1',
@@ -52,26 +51,12 @@ const songs = {
     audioSrc:'dontplay.mp3',
     NOTESPEED: 7,
     notesData:[
-  { type:'tap', time:1000, lane:0 },
-  { type:'tap', time:1500, lane:1 },
-  { type:'tap', time:2000, lane:2 },
-  { type:'tap', time:2500, lane:3 },
-  { type:'tap', time:3000, lane:0 },
-  { type:'tap', time:3500, lane:2 },
-  { type:'tap', time:4000, lane:1 },
-  { type:'tap', time:4500, lane:3 },
-  { type:'tap', time:5000, lane:0 },
-  { type:'tap', time:5200, lane:1 },
-  { type:'tap', time:5400, lane:2 },
-  { type:'tap', time:5600, lane:3 },
-  { type:'tap', time:6000, lane:0 },
-  { type:'tap', time:6500, lane:2 },
-  { type:'tap', time:7000, lane:1 },
-  { type:'tap', time:7500, lane:3 },
-  { type:'tap', time:8000, lane:0 },
-  { type:'tap', time:8500, lane:1 },
-  { type:'tap', time:9000, lane:2 },
-  { type:'tap', time:9500, lane:3 }
+      { type:'tap', time:1000, lane:0 },
+      { type:'tap', time:1500, lane:1 },
+      { type:'hold', startTime:2000, endTime:4000, lane:2 },
+      { type:'tap', time:4500, lane:3 },
+      { type:'hold', startTime:5000, endTime:7000, lane:0 },
+      { type:'tap', time:8000, lane:1 }
     ]
   }
 };
@@ -93,17 +78,27 @@ function startSong(songId) {
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // Targets
   for (let i=0;i<lanes;i++) {
     const color = pressed[i] ? "white" : "gray";
     drawArrow(i*laneWidth+10, canvas.height-50, laneWidth-20, 40, color);
   }
 
-  notes.forEach(note => {
-  const color = laneColors[note.lane];
-  drawArrow(note.lane * laneWidth + 10, note.y, laneWidth - 20, 20, color);
-});
+  const hitY = canvas.height - 50;
+  const travelTime = 2000;
+  const pixelsPerMs = hitY / travelTime;
+  const elapsed = performance.now() - startTime;
 
+  notes.forEach(note => {
+    const color = laneColors[note.lane];
+    if (note.type === "tap") {
+      drawArrow(note.lane * laneWidth + 10, note.y, laneWidth - 20, 20, color);
+    } else if (note.type === "hold") {
+      const startY = hitY - (note.startTime - elapsed) * pixelsPerMs;
+      const endY   = hitY - (note.endTime   - elapsed) * pixelsPerMs;
+      ctx.fillStyle = color;
+      ctx.fillRect(note.lane * laneWidth + 10, startY, laneWidth - 20, endY - startY);
+    }
+  });
 
   ctx.fillStyle="white";
   ctx.font="20px Arial";
@@ -117,57 +112,74 @@ function update() {
   const travelTime = 2000;      
   const pixelsPerMs = hitY / travelTime;
 
-
   currentSong.notesData.forEach(nd => {
-    if (!nd.spawned && elapsed >= nd.time - travelTime) {
-      notes.push({ lane: nd.lane, targetTime: nd.time });
-      nd.spawned = true;
+    if (!nd.spawned) {
+      if (nd.type === "tap" && elapsed >= nd.time - travelTime) {
+        notes.push({ type:"tap", lane: nd.lane, targetTime: nd.time });
+        nd.spawned = true;
+      }
+      if (nd.type === "hold" && elapsed >= nd.startTime - travelTime) {
+        notes.push({ type:"hold", lane: nd.lane, startTime: nd.startTime, endTime: nd.endTime, active:false });
+        nd.spawned = true;
+      }
     }
   });
 
   notes.forEach(note => {
-    const timeToTarget = note.targetTime - elapsed;
-    note.y = hitY - timeToTarget * pixelsPerMs;
+    if (note.type === "tap") {
+      const timeToTarget = note.targetTime - elapsed;
+      note.y = hitY - timeToTarget * pixelsPerMs;
+    }
   });
 
+
   for (let i = notes.length - 1; i >= 0; i--) {
-    if (notes[i].y > canvas.height) {
+    const note = notes[i];
+    if (note.type === "tap" && note.y > canvas.height) {
       score -= 5;
       notes.splice(i, 1);
     }
+    if (note.type === "hold" && elapsed > note.endTime + 200) {
+ 
+      if (!note.completed) {
+        score -= 5;
+      }
+      notes.splice(i,1);
+    }
   }
 }
-
-
 
 // --- Input ---
 document.addEventListener("keydown", e => {
   const lane = keys.indexOf(e.key);
   if (lane !== -1) {
     pressed[lane] = true;
-
     const now = performance.now() - startTime; 
 
     for (let i = 0; i < notes.length; i++) {
       const note = notes[i];
-
       if (note.lane === lane) {
-        const diff = Math.abs(now - note.targetTime); 
-
-        if (diff < 50) {    
-          score += 50;
-          notes.splice(i, 1);
-          break;
-        } else if (diff < 100) {  
-          score += 30;
-          notes.splice(i, 1);
-          break;
-        } else if (diff < 150) {  
-          score += 10;
-          notes.splice(i, 1);
-          break;
+        if (note.type === "tap") {
+          const diff = Math.abs(now - note.targetTime); 
+          if (diff < 50) {    
+            score += 50;
+            notes.splice(i, 1);
+            break;
+          } else if (diff < 100) {  
+            score += 30;
+            notes.splice(i, 1);
+            break;
+          } else if (diff < 150) {  
+            score += 10;
+            notes.splice(i, 1);
+            break;
+          }
+        } else if (note.type === "hold") {
+          const diff = Math.abs(now - note.startTime);
+          if (diff < 150) {
+            note.active = true; 
+          }
         }
-   
       }
     }
   }
@@ -177,12 +189,19 @@ document.addEventListener("keyup", e => {
   const lane = keys.indexOf(e.key);
   if (lane !== -1) {
     pressed[lane] = false;
+    const now = performance.now() - startTime;
+    for (let note of notes) {
+      if (note.lane === lane && note.type === "hold" && note.active) {
+        if (now >= note.endTime - 150) {
+          score += 50; 
+          note.completed = true;
+        } else {
+          score -= 5; 
+        }
+        note.active = false;
+      }
+    }
   }
-});
-
-document.addEventListener("keyup", e=>{
-  const lane = keys.indexOf(e.key);
-  if (lane!==-1) pressed[lane]=false;
 });
 
 // --- Game Loop ---
