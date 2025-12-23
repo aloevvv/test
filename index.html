@@ -130,6 +130,11 @@ function update() {
   });
 
   // Remove passed notes
+  for (let i = notes.length - 1; i >= 0; i--) {
+  if (notes[i].y > canvas.height) {
+    score -= 5;   // miss penalty
+    notes.splice(i, 1);
+  }
   notes = notes.filter(n=>n.y<canvas.height+50);
 }
 
@@ -142,7 +147,7 @@ document.addEventListener("keydown", e=>{
     for (let i=0;i<notes.length;i++) {
       const note=notes[i];
       if (note.lane===lane && Math.abs(note.y-(canvas.height-50))<20) {
-        score++;
+        score+= 30;
         notes.splice(i,1);
         break;
       }
