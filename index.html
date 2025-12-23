@@ -111,19 +111,21 @@ function draw() {
 function update() {
   const now = performance.now();
   const elapsed = now - startTime;
+  const hitY = canvas.height - 50; 
+  const travelTime = 2000;      
+  const pixelsPerMs = hitY / travelTime;
+
 
   currentSong.notesData.forEach(nd => {
-    if (!nd.spawned && elapsed >= nd.time - 2000) { 
-      notes.push({ lane: nd.lane, y: -800, targetTime: nd.time });
+    if (!nd.spawned && elapsed >= nd.time - travelTime) {
+      notes.push({ lane: nd.lane, targetTime: nd.time });
       nd.spawned = true;
     }
   });
 
   notes.forEach(note => {
- 
     const timeToTarget = note.targetTime - elapsed;
-    const hitY = canvas.height - 50;
-    note.y += currentSong.NOTESPEED;
+    note.y = hitY - timeToTarget * pixelsPerMs;
   });
 
   for (let i = notes.length - 1; i >= 0; i--) {
@@ -132,9 +134,8 @@ function update() {
       notes.splice(i, 1);
     }
   }
-
-  notes = notes.filter(n => n.y < canvas.height + 50);
 }
+
 
 
 // --- Input ---
