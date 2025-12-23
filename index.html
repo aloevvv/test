@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>4-Note Rhythm Game</title>
+  <style>
+    body { margin:0; background:#000; }
+    canvas { display:block; margin:0 auto; background:#111; }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const lanes = 4;
+const laneWidth = canvas.width / lanes;
+const notes = [];
+let score = 0;
+
+function spawnNote() {
+  const lane = Math.floor(Math.random() * lanes);
+  notes.push({ lane: lane, y: -20 });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < lanes; i++) {
+    ctx.fillStyle = "rgba(255,255,255,0.1)";
+    ctx.fillRect(i * laneWidth, canvas.height - 50, laneWidth, 50);
+  }
+
+  ctx.fillStyle = "white";
+  notes.forEach(note => {
+    ctx.fillRect(note.lane * laneWidth + 10, note.y, laneWidth - 20, 20);
+  });
+
+  ctx.fillStyle = "white";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 10, 30);
+}
+
+function update() {
+  notes.forEach(note => {
+    note.y += 4;
+  });
+
+  for (let i = notes.length - 1; i >= 0; i--) {
+    if (notes[i].y > canvas.height) {
+      notes.splice(i, 1);
+    }
+  }
+}
+
+document.addEventListener("keydown", e => {
+  const keys = ["d", "f", "j", "k"]; 
+  const lane = keys.indexOf(e.key);
+  if (lane !== -1) {
+    for (let i = 0; i < notes.length; i++) {
+      if (notes[i].lane === lane &&
+          notes[i].y > canvas.height - 70 &&
+          notes[i].y < canvas.height - 30) {
+        score++;
+        notes.splice(i, 1);
+        break;
+      }
+    }
+  }
+});
+
+let spawnTimer = 0;
+function gameLoop() {
+  spawnTimer++;
+  if (spawnTimer > 60) {
+    spawnNote();
+    spawnTimer = 0;
+  }
+
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
