@@ -108,35 +108,34 @@ function draw() {
   ctx.fillText("Score: "+score,10,30);
 }
 
-// --- Update Notes ---
 function update() {
   const now = performance.now();
   const elapsed = now - startTime;
 
-  // Spawn notes when their time comes
-  currentSong.notesData.forEach(nd=>{
-    if (!nd.spawned && elapsed >= nd.time-2000) { // spawn 2s early
-      notes.push({lane:nd.lane, y:-800, targetTime:nd.time});
-      nd.spawned=true;
+  currentSong.notesData.forEach(nd => {
+    if (!nd.spawned && elapsed >= nd.time - 2000) { 
+      notes.push({ lane: nd.lane, y: -800, targetTime: nd.time });
+      nd.spawned = true;
     }
   });
 
-  // Move notes
-  notes.forEach(note=>{
-    // position based on time difference
+  notes.forEach(note => {
+ 
     const timeToTarget = note.targetTime - elapsed;
-    const hitY = canvas.height-50;
+    const hitY = canvas.height - 50;
     note.y += currentSong.NOTESPEED;
   });
 
-  // Remove passed notes
   for (let i = notes.length - 1; i >= 0; i--) {
-  if (notes[i].y > canvas.height) {
-    score -= 5;   // miss penalty
-    notes.splice(i, 1);
+    if (notes[i].y > canvas.height) {
+      score -= 5;
+      notes.splice(i, 1);
+    }
   }
-  notes = notes.filter(n=>n.y<canvas.height+50);
+
+  notes = notes.filter(n => n.y < canvas.height + 50);
 }
+
 
 // --- Input ---
 document.addEventListener("keydown", e=>{
