@@ -2,14 +2,22 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>4-Note Rhythm Game</title>
+  <title>Rhythm Game</title>
   <style>
-    body { margin:0; background:#000; }
+    body { margin:0; background:#000; color:white; font-family:sans-serif; }
     canvas { display:block; margin:0 auto; background:#111; }
+    #menu { text-align:center; padding:20px; }
+    button { margin:5px; padding:10px 20px; }
   </style>
 </head>
 <body>
-<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<div id="menu">
+  <h1>Select a Song</h1>
+  <button onclick="startSong('song1')">sex</button>
+</div>
+
+<canvas id="gameCanvas" width="400" height="600" style="display:none"></canvas>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
@@ -17,98 +25,125 @@ const ctx = canvas.getContext("2d");
 
 const lanes = 4;
 const laneWidth = canvas.width / lanes;
-const notes = [];
+let notes = [];
 let score = 0;
-
-const pressed = [false, false, false, false];
+let pressed = [false,false,false,false];
 const keys = ["d","f","j","k"];
+let audio, currentSong, startTime;
 
+// --- Draw Arrow ---
 function drawArrow(x, y, width, height, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(x + width/2, y);
-  ctx.lineTo(x + width, y + height); 
-  ctx.lineTo(x, y + height);         
+  ctx.moveTo(x + width/2, y);           // tip
+  ctx.lineTo(x + width, y + height);    // right bottom
+  ctx.lineTo(x, y + height);            // left bottom
   ctx.closePath();
   ctx.fill();
 }
 
-function spawnNote() {
-  const lane = Math.floor(Math.random() * lanes);
-  notes.push({ lane: lane, y: -20 });
+// --- Song Data ---
+const NOTE_Y0=0, NOTE_Y1=0, NOTE_Y2=0, NOTE_Y3=0, NOTE_Y4=0; 
+const songs = {
+  song1: {
+    id:'song1',
+    title:'balls',
+    audioSrc:'dontplay.mp3',
+    NOTESPEED:19.6078431,
+    notesData:[
+      { type:'tap', time:1000, lane:0 },
+      { type:'tap', time:2000, lane:1 },
+      { type:'tap', time:3000, lane:2 },
+      { type:'tap', time:4000, lane:3 }
+    ]
+  }
+};
+
+// --- Start Song ---
+function startSong(songId) {
+  document.getElementById("menu").style.display="none";
+  canvas.style.display="block";
+  currentSong = songs[songId];
+  audio = new Audio(currentSong.audioSrc);
+  audio.play();
+  startTime = performance.now();
+  notes = [];
+  score = 0;
+  requestAnimationFrame(gameLoop);
 }
 
+// --- Draw Game ---
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-
-  for (let i = 0; i < lanes; i++) {
-    const color = pressed[i] ? "yellow" : "gray";
-    drawArrow(i * laneWidth + 10, canvas.height - 50, laneWidth - 20, 40, color);
+  // Targets
+  for (let i=0;i<lanes;i++) {
+    const color = pressed[i] ? "white" : "gray";
+    drawArrow(i*laneWidth+10, canvas.height-50, laneWidth-20, 40, color);
   }
 
-
-  notes.forEach(note => {
-    drawArrow(note.lane * laneWidth + 10, note.y, laneWidth - 20, 20, "white");
+  // Notes
+  notes.forEach(note=>{
+    drawArrow(note.lane*laneWidth+10, note.y, laneWidth-20, 20, "white");
   });
 
-
-  ctx.fillStyle = "white";
-  ctx.font = "20px Arial";
-  ctx.fillText("Score: " + score, 10, 30);
+  ctx.fillStyle="white";
+  ctx.font="20px Arial";
+  ctx.fillText("Score: "+score,10,30);
 }
 
+// --- Update Notes ---
 function update() {
-  notes.forEach(note => {
-    note.y += 4; 
+  const now = performance.now();
+  const elapsed = now - startTime;
+
+  // Spawn notes when their time comes
+  currentSong.notesData.forEach(nd=>{
+    if (!nd.spawned && elapsed >= nd.time-2000) { // spawn 2s early
+      notes.push({lane:nd.lane, y:-20, targetTime:nd.time});
+      nd.spawned=true;
+    }
   });
 
+  // Move notes
+  notes.forEach(note=>{
+    // position based on time difference
+    const timeToTarget = note.targetTime - elapsed;
+    const hitY = canvas.height-50;
+    note.y = hitY - timeToTarget/10; // adjust divisor for speed
+  });
 
-  for (let i = notes.length - 1; i >= 0; i--) {
-    if (notes[i].y > canvas.height) {
-      notes.splice(i, 1);
-    }
-  }
+  // Remove passed notes
+  notes = notes.filter(n=>n.y<canvas.height+50);
 }
 
-document.addEventListener("keydown", e => {
+// --- Input ---
+document.addEventListener("keydown", e=>{
   const lane = keys.indexOf(e.key);
-  if (lane !== -1) {
-    pressed[lane] = true;
-  
-    for (let i = 0; i < notes.length; i++) {
-      if (notes[i].lane === lane &&
-          notes[i].y > canvas.height - 70 &&
-          notes[i].y < canvas.height - 30) {
+  if (lane!==-1) {
+    pressed[lane]=true;
+    // check hit
+    for (let i=0;i<notes.length;i++) {
+      const note=notes[i];
+      if (note.lane===lane && Math.abs(note.y-(canvas.height-50))<20) {
         score++;
-        notes.splice(i, 1);
+        notes.splice(i,1);
         break;
       }
     }
   }
 });
-
-document.addEventListener("keyup", e => {
+document.addEventListener("keyup", e=>{
   const lane = keys.indexOf(e.key);
-  if (lane !== -1) {
-    pressed[lane] = false;
-  }
+  if (lane!==-1) pressed[lane]=false;
 });
 
-let spawnTimer = 0;
+// --- Game Loop ---
 function gameLoop() {
-  spawnTimer++;
-  if (spawnTimer > 60) {
-    spawnNote();
-    spawnTimer = 0;
-  }
-
   update();
   draw();
   requestAnimationFrame(gameLoop);
 }
-
-gameLoop();
 </script>
 </body>
 </html>
