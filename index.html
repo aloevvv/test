@@ -138,21 +138,45 @@ function update() {
 
 
 // --- Input ---
-document.addEventListener("keydown", e=>{
+document.addEventListener("keydown", e => {
   const lane = keys.indexOf(e.key);
-  if (lane!==-1) {
-    pressed[lane]=true;
-    // check hit
-    for (let i=0;i<notes.length;i++) {
-      const note=notes[i];
-      if (note.lane===lane && Math.abs(note.y-(canvas.height-50))<20) {
-        score+= 30;
-        notes.splice(i,1);
-        break;
+  if (lane !== -1) {
+    pressed[lane] = true;
+
+    const now = performance.now() - startTime; 
+
+    for (let i = 0; i < notes.length; i++) {
+      const note = notes[i];
+
+      if (note.lane === lane) {
+        const diff = Math.abs(now - note.targetTime); 
+
+        if (diff < 50) {    
+          score += 50;
+          notes.splice(i, 1);
+          break;
+        } else if (diff < 100) {  
+          score += 30;
+          notes.splice(i, 1);
+          break;
+        } else if (diff < 150) {  
+          score += 10;
+          notes.splice(i, 1);
+          break;
+        }
+   
       }
     }
   }
 });
+
+document.addEventListener("keyup", e => {
+  const lane = keys.indexOf(e.key);
+  if (lane !== -1) {
+    pressed[lane] = false;
+  }
+});
+
 document.addEventListener("keyup", e=>{
   const lane = keys.indexOf(e.key);
   if (lane!==-1) pressed[lane]=false;
