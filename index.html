@@ -20,6 +20,19 @@ const laneWidth = canvas.width / lanes;
 const notes = [];
 let score = 0;
 
+const pressed = [false, false, false, false];
+const keys = ["d","f","j","k"];
+
+function drawArrow(x, y, width, height, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x + width/2, y);
+  ctx.lineTo(x + width, y + height); 
+  ctx.lineTo(x, y + height);         
+  ctx.closePath();
+  ctx.fill();
+}
+
 function spawnNote() {
   const lane = Math.floor(Math.random() * lanes);
   notes.push({ lane: lane, y: -20 });
@@ -28,15 +41,17 @@ function spawnNote() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+
   for (let i = 0; i < lanes; i++) {
-    ctx.fillStyle = "rgba(255,255,255,0.1)";
-    ctx.fillRect(i * laneWidth, canvas.height - 50, laneWidth, 50);
+    const color = pressed[i] ? "yellow" : "gray";
+    drawArrow(i * laneWidth + 10, canvas.height - 50, laneWidth - 20, 40, color);
   }
 
-  ctx.fillStyle = "white";
+
   notes.forEach(note => {
-    ctx.fillRect(note.lane * laneWidth + 10, note.y, laneWidth - 20, 20);
+    drawArrow(note.lane * laneWidth + 10, note.y, laneWidth - 20, 20, "white");
   });
+
 
   ctx.fillStyle = "white";
   ctx.font = "20px Arial";
@@ -45,8 +60,9 @@ function draw() {
 
 function update() {
   notes.forEach(note => {
-    note.y += 4;
+    note.y += 4; 
   });
+
 
   for (let i = notes.length - 1; i >= 0; i--) {
     if (notes[i].y > canvas.height) {
@@ -56,9 +72,10 @@ function update() {
 }
 
 document.addEventListener("keydown", e => {
-  const keys = ["d", "f", "j", "k"]; 
   const lane = keys.indexOf(e.key);
   if (lane !== -1) {
+    pressed[lane] = true;
+  
     for (let i = 0; i < notes.length; i++) {
       if (notes[i].lane === lane &&
           notes[i].y > canvas.height - 70 &&
@@ -68,6 +85,13 @@ document.addEventListener("keydown", e => {
         break;
       }
     }
+  }
+});
+
+document.addEventListener("keyup", e => {
+  const lane = keys.indexOf(e.key);
+  if (lane !== -1) {
+    pressed[lane] = false;
   }
 });
 
